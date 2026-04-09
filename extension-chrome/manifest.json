@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "下载管理器 (Downloader)",
+  "version": "1.6.8",
+  "description": "具有实时进度跟踪的高性能下载加速器。拦截下载并使用 Downloader 的多连接引擎进行加速。",
+  "permissions": ["downloads", "storage", "notifications", "webRequest"],
+  "host_permissions": ["http://127.0.0.1/*", "<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/logo.png",
+      "48": "icons/logo.png",
+      "128": "icons/logo.png"
+    }
+  },
+  "icons": {
+    "16": "icons/logo.png",
+    "48": "icons/logo.png",
+    "128": "icons/logo.png"
+  }
+}

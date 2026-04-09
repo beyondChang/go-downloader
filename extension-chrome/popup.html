@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=360" />
+    <title>下载管理器</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+          </svg>
+          <h1>下载管理器</h1>
+        </div>
+        <div class="header-actions">
+          <div class="status-badge" id="serverStatus">
+            <span class="status-dot" id="statusDot"></span>
+            <span class="status-text" id="statusText">正在连接...</span>
+          </div>
+          <button id="showSettings" class="icon-btn" title="设置">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main View (Downloads) -->
+      <main id="mainView" class="view-container">
+        <section class="downloads-section">
+          <div class="downloads-header">
+            <div class="downloads-title-row">
+              <span class="section-title">下载任务</span>
+              <span class="download-count" id="downloadCount">0</span>
+            </div>
+            <div class="view-switch" id="viewSwitch">
+              <button class="view-tab active" id="viewTabActive" type="button">正在下载</button>
+              <button class="view-tab" id="viewTabHistory" type="button">历史记录</button>
+            </div>
+          </div>
+
+          <div class="downloads-list" id="downloadsList">
+            <div class="empty-state" id="emptyState">
+              <div class="empty-icon">📦</div>
+              <p>暂无下载任务</p>
+              <p class="empty-hint">下载任务将自动显示在此处</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Settings View -->
+      <main id="settingsView" class="view-container hidden">
+        <div class="settings-header">
+          <button id="backToMain" class="back-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            返回
+          </button>
+          <h2 class="section-title">设置</h2>
+        </div>
+        
+        <div class="settings-content">
+          <div class="auth-row">
+            <div class="auth-label">
+              <label for="serverUrl">服务器地址</label>
+            </div>
+            <div class="auth-input">
+              <input
+                type="text"
+                id="serverUrl"
+                placeholder="http://127.0.0.1:1700"
+              />
+              <button id="saveServerUrl">保存</button>
+            </div>
+            <div class="auth-status" id="serverUrlStatus"></div>
+          </div>
+
+          <div class="auth-row">
+            <div class="auth-label">
+              <label for="authToken">授权令牌</label>
+              <span
+                class="auth-help"
+                data-tooltip="从设置或 auth_token 文件中获取令牌"
+                >?</span
+              >
+            </div>
+            <div class="auth-input">
+              <input
+                type="password"
+                id="authToken"
+                placeholder="粘贴来自下载管理器的令牌"
+              />
+              <button id="copyToken" class="hidden">复制</button>
+              <button id="saveToken">保存</button>
+            </div>
+            <div class="auth-status" id="authStatus"></div>
+          </div>
+
+          <label class="toggle-row">
+            <span>拦截下载</span>
+            <div class="toggle">
+              <input type="checkbox" id="interceptToggle" checked />
+              <span class="toggle-slider"></span>
+            </div>
+          </label>
+        </div>
+      </main>
+    </div>
+
+    <!-- Duplicate Download Modal -->
+    <div class="modal-overlay hidden" id="duplicateModal">
+      <div class="modal-container">
+        <div class="modal-icon">⚠️</div>
+        <h2 class="modal-title">重复下载</h2>
+        <p class="modal-message">该文件已经在下载列表中：</p>
+        <p class="modal-filename" id="duplicateFilename">filename.zip</p>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-secondary" id="duplicateSkip">
+            跳过
+          </button>
+          <button class="modal-btn modal-btn-primary" id="duplicateConfirm">
+            重新下载
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
