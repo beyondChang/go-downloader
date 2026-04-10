@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 
 	"github.com/go-downloader/internal/assets"
@@ -40,9 +41,20 @@ func ensureIcon() string {
 			Debug("Failed to create icon cache dir: %v", err)
 			return
 		}
-		path := filepath.Join(downloaderCache, "downloader_logo.png")
+
+		// On Windows, use ICO to match tray icon appearance
+		ext := ".png"
+		data := assets.LogoData
+		if runtime.GOOS == "windows" {
+			ext = ".ico"
+			if converted, err := ConvertToICO(assets.LogoData); err == nil {
+				data = converted
+			}
+		}
+
+		path := filepath.Join(downloaderCache, "downloader_logo"+ext)
 		if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-			if err := os.WriteFile(path, assets.LogoData, 0o644); err != nil {
+			if err := os.WriteFile(path, data, 0o644); err != nil {
 				Debug("Failed to write notification icon: %v", err)
 				return
 			}

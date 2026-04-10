@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync/atomic"
 
@@ -62,7 +61,7 @@ func ProcessDownloads(urls []string, outputDir string) int {
 	successCount := 0
 
 	if GlobalService == nil {
-		fmt.Fprintln(os.Stderr, "Error: GlobalService not initialized")
+		utils.Debug("Error: GlobalService not initialized")
 		return 0
 	}
 
@@ -70,7 +69,7 @@ func ProcessDownloads(urls []string, outputDir string) int {
 
 	lifecycle, err := LifecycleForLocalService(GlobalService)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error: unable to initialize lifecycle manager:", err)
+		utils.Debug("Error: unable to initialize lifecycle manager: %v", err)
 		return 0
 	}
 

@@ -2,8 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -209,7 +207,7 @@ func PublishSystemLog(message string) {
 		_ = GlobalService.Publish(events.SystemLogMsg{Message: message})
 		return
 	}
-	fmt.Fprintln(os.Stderr, message)
+	utils.Debug("System Log: %s", message)
 }
 
 func RecordPreflightDownloadError(url, outPath string, err error) {

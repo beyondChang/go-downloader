@@ -37,13 +37,16 @@ func IsLoggingEnabled() bool {
 // Debug writes a message to debug.log file in the configured directory
 func Debug(format string, args ...any) {
 	// Internal fast path check without lock
+	dir := ""
 	val := logsDir.Load()
-	if val == nil {
-		return
+	if val != nil {
+		dir = val.(string)
 	}
-	dir := val.(string)
+
+	// Fallback to temp dir if not configured yet, so we don't lose startup logs
 	if dir == "" {
-		return
+		tempDir := os.TempDir()
+		dir = filepath.Join(tempDir, "downloader-startup-logs")
 	}
 
 	// Calculate timestamp only if we are actually logging
@@ -52,11 +55,14 @@ func Debug(format string, args ...any) {
 	// Ensure file is open (still needs once, but fast after first time)
 	debugOnce.Do(func() {
 		_ = os.MkdirAll(dir, 0o755)
-		debugFile, _ = os.Create(filepath.Join(dir, fmt.Sprintf("debug-%s.log", time.Now().Format("20060102-150405"))))
+		// Use a fixed name for startup logs so we can find them, but with a timestamp for session logs
+		logName := fmt.Sprintf("debug-%s.log", time.Now().Format("20060102-150405"))
+		debugFile, _ = os.Create(filepath.Join(dir, logName))
 	})
 
 	if debugFile != nil {
 		_, _ = fmt.Fprintf(debugFile, "[%s] %s\n", timestamp, fmt.Sprintf(format, args...))
+		_ = debugFile.Sync() // Ensure it's written immediately during startup
 	}
 }
 

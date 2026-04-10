@@ -66,6 +66,21 @@ func RemoveActivePort() {
 	}
 }
 
+// GetActivePort reads the active port from the port file.
+func GetActivePort() (int, error) {
+	portFile := filepath.Join(config.GetRuntimeDir(), "port")
+	data, err := os.ReadFile(portFile)
+	if err != nil {
+		return 0, err
+	}
+	var port int
+	_, err = fmt.Sscanf(string(data), "%d", &port)
+	if err != nil {
+		return 0, err
+	}
+	return port, nil
+}
+
 // StartHTTPServer starts the HTTP server using an existing listener
 func StartHTTPServer(ln net.Listener, port int, defaultOutputDir string, service core.DownloadService, tokenOverride string) {
 	authToken := strings.TrimSpace(tokenOverride)
