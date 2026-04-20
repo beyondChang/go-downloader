@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-downloader/internal/engine/concurrent"
-	"github.com/go-downloader/internal/engine/events"
-	"github.com/go-downloader/internal/engine/single"
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/processing"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/engine/concurrent"
+	"go-downloader/internal/engine/events"
+	"go-downloader/internal/engine/single"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/processing"
+	"go-downloader/internal/utils"
 )
 
 // safeSendProgress sends msg on ch, recovering from panics caused by sending

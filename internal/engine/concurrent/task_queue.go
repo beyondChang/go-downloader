@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/go-downloader/internal/engine/types"
+	"go-downloader/internal/engine/types"
 )
 
 // TaskQueue is a thread-safe work-stealing queue

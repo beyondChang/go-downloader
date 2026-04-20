@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/utils"
 )
 
 const (

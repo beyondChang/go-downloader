@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/utils"
 )
 
 var (

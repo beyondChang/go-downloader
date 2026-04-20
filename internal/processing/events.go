@@ -7,10 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-downloader/internal/engine/events"
-	"github.com/go-downloader/internal/engine/state"
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/engine/events"
+	"go-downloader/internal/engine/state"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/utils"
 )
 
 var (

@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/engine/state"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/config"
+	"go-downloader/internal/engine/state"
+	"go-downloader/internal/utils"
 )
 
 func RunStartupIntegrityCheck() string {

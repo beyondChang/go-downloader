@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/utils"
 )
 
 const (

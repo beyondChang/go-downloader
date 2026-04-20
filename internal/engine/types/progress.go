@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/utils"
 )
 
 type ProgressState struct {

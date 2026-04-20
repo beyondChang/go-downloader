@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/utils"
 )
 
 // SingleDownloader handles single-threaded downloads for servers that don't support range requests.

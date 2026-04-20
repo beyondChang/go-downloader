@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/config"
+	"go-downloader/internal/utils"
 
 	"github.com/gofrs/flock"
 )

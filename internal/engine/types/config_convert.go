@@ -1,6 +1,6 @@
 package types
 
-import "github.com/go-downloader/internal/config"
+import "go-downloader/internal/config"
 
 // ConvertRuntimeConfig converts the app-level RuntimeConfig to the engine-level RuntimeConfig.
 func ConvertRuntimeConfig(rc *config.RuntimeConfig) *RuntimeConfig {

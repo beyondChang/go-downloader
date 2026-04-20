@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-downloader/internal/engine/types"
+	"go-downloader/internal/engine/types"
 )
 
 // ActiveTask tracks a task currently being processed by a worker

@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/core"
-	"github.com/go-downloader/internal/processing"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/config"
+	"go-downloader/internal/core"
+	"go-downloader/internal/processing"
+	"go-downloader/internal/utils"
 )
 
 // DownloadRequest represents a download request

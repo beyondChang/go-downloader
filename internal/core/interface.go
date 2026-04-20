@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	"github.com/go-downloader/internal/engine/types"
+	"go-downloader/internal/engine/types"
 )
 
 // DownloadService defines the interface for interacting with the download engine.

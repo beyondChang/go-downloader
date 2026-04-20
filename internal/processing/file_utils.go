@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/config"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/utils"
 )
 
 // InferFilenameFromURL is the final naming fallback when neither the user nor

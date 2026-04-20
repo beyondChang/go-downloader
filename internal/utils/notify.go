@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/go-downloader/internal/assets"
+	"go-downloader/internal/utils/icon"
 
 	"github.com/gen2brain/beeep"
 )
@@ -44,12 +44,10 @@ func ensureIcon() string {
 
 		// On Windows, use ICO to match tray icon appearance
 		ext := ".png"
-		data := assets.LogoData
+		data := icon.LoadLogoPNG(64)
 		if runtime.GOOS == "windows" {
 			ext = ".ico"
-			if converted, err := ConvertToICO(assets.LogoData); err == nil {
-				data = converted
-			}
+			data = icon.LoadLogoICO()
 		}
 
 		path := filepath.Join(downloaderCache, "downloader_logo"+ext)

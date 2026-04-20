@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/config"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/utils"
 )
 
 var ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +

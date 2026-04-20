@@ -1,128 +1,106 @@
+// Package cmd 命令行入口
+// 使用 Cobra 框架处理命令行参数和子命令
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"io"
+	"net/http"
 	"os"
-	"strings"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/go-downloader/internal/app"
-	"github.com/go-downloader/internal/server"
-	"github.com/go-downloader/internal/tray"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/config"
+	"go-downloader/internal/database"
+	"go-downloader/internal/server"
+	"go-downloader/internal/utils/logger"
+	"go-downloader/web"
+
 	"github.com/spf13/cobra"
 )
 
-var Version = "0.0.1"
+// Version 版本信息，编译时通过 -ldflags 注入
+var Version = "1.0.0"
 
-var (
-	globalToken string
-)
-
+// rootCmd 根命令
 var rootCmd = &cobra.Command{
-	Use:   "downloader [url]...",
-	Short: "Downloader is a powerful and easy-to-use download manager",
-	Long: `Downloader supports multi-threaded downloads, pausing/resuming,
-and categorization. It provides a modern Web interface for easy management.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		utils.Debug("rootCmd.RunE invoked with args: %v", args)
-		// 1. Acquire lock
-		utils.Debug("Attempting to acquire instance lock")
-		releaseLock, err := app.AcquireLock()
-		if err != nil {
-			utils.Debug("Lock acquisition failed: %v", err)
-			return nil
-		}
-		defer func() {
-			if releaseLock {
-				utils.Debug("Releasing instance lock")
-				app.ReleaseLock()
-			}
-		}()
-
-		// 2. Initialize app
-		utils.Debug("Initializing application state")
-		app.Initialize()
-		utils.Debug("Application state initialized")
-
-		// 3. Start server
-		portFlag, _ := cmd.Flags().GetInt("port")
-		outputDir, _ := cmd.Flags().GetString("output")
-		batchFile, _ := cmd.Flags().GetString("batch")
-
-		utils.Debug("Binding server listener on port flag: %d", portFlag)
-		port, ln, err := server.BindServerListener(portFlag)
-		if err != nil {
-			utils.Debug("Failed to bind server listener: %v", err)
-			utils.Notify("启动失败", fmt.Sprintf("无法绑定端口: %v", err))
-			return err
-		}
-		defer ln.Close()
-
-		utils.Debug("Server bound to port %d", port)
-		server.SaveActivePort(port)
-		defer server.RemoveActivePort()
-
-		utils.Debug("Starting HTTP server")
-		go server.StartHTTPServer(ln, port, outputDir, app.GlobalService, globalToken)
-
-		// 4. Initial downloads
-		var urls []string
-		if batchFile != "" {
-			utils.Debug("Reading URLs from batch file: %s", batchFile)
-			data, err := os.ReadFile(batchFile)
-			if err == nil {
-				for _, line := range strings.Split(string(data), "\n") {
-					if trimmed := strings.TrimSpace(line); trimmed != "" {
-						urls = append(urls, trimmed)
-					}
-				}
-			} else {
-				utils.Debug("Failed to read batch file: %v", err)
-			}
-		}
-		urls = append(urls, args...)
-		if len(urls) > 0 {
-			utils.Debug("Processing %d initial download(s)", len(urls))
-			app.ProcessDownloads(urls, outputDir)
-		}
-
-		// 5. Start tray (blocks until quit)
-		url := fmt.Sprintf("http://127.0.0.1:%d", port)
-
-		utils.Debug("Starting system tray loop")
-		utils.Notify("Downloader 已启动", fmt.Sprintf("访问地址: %s", url))
-		tray.Run(url)
-		utils.Debug("System tray loop exited")
-		return nil
-	},
+	Use:     "go-downloader",
+	Short:   "Go Downloader - 多线程下载管理器",
+	Long:    "Go Downloader 是一个支持多线程下载、暂停恢复、文件分类的下载管理器。",
+	Version: Version,
+	Run:     run,
 }
 
-func Execute() error {
-	utils.Debug("cmd.Execute() invoked")
-	// Always discard standard outputs for Cobra's internal help/usage messages
-	// in case of errors during double-click or non-terminal start.
-	rootCmd.SetOut(io.Discard)
-	rootCmd.SetErr(io.Discard)
+// run 主运行函数
+func run(cmd *cobra.Command, args []string) {
+	// 初始化配置
+	config.Init()
+	
+	// 初始化日志
+	logger.Init(config.GetDataDir())
+	defer logger.Close()
 
-	utils.Debug("Running rootCmd.Execute()")
+	// 设置 Web 静态资源
+	server.WebAssets = web.Assets
+
+	// 创建 HTTP 服务器
+	srv, asm := server.NewServer()
+
+	// 打印启动信息
+	fmt.Printf("Go Downloader v%s 正在启动...\n", Version)
+	fmt.Printf("监听地址: %s\n", srv.Addr)
+	fmt.Printf("数据目录: %s\n", config.GetDataDir())
+	
+	// 获取自动启动状态
+	if asm.IsEnabled() {
+		fmt.Println("开机自启: 已启用")
+	} else {
+		fmt.Println("开机自启: 未启用")
+	}
+
+	// 启动服务器（非阻塞）
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("服务器启动失败: %v", err)
+		}
+	}()
+
+	// 等待中断信号
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	// 优雅关闭
+	fmt.Println("\n正在关闭服务器...")
+	
+	// 创建关闭超时上下文
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 关闭服务器
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("服务器关闭失败: %v", err)
+	}
+
+	// 关闭数据库连接
+	db := database.New()
+	if err := db.Close(); err != nil {
+		logger.Error("数据库关闭失败: %v", err)
+	}
+
+	fmt.Println("服务器已关闭")
+}
+
+// Execute 执行根命令
+func Execute() error {
 	return rootCmd.Execute()
 }
 
-// RunGUI directly invokes the RunE logic without Cobra parsing,
-// useful for Windows GUI mode where Cobra's internal stdout handling might crash.
-func RunGUI() error {
-	utils.Debug("cmd.RunGUI() invoked")
-	return rootCmd.RunE(rootCmd, nil)
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringVar(&globalToken, "token", "", "Set custom API auth token (or use SURGE_TOKEN environment variable)")
-	rootCmd.Flags().StringP("batch", "b", "", "File containing URLs to download (one per line)")
-	rootCmd.Flags().IntP("port", "p", 0, "Port to listen on (default: 8080 or first available)")
-	rootCmd.Flags().StringP("output", "o", "", "Output directory (defaults to current working directory)")
-	rootCmd.Flags().Bool("no-resume", false, "Do not auto-resume paused downloads on startup")
-	rootCmd.Flags().Bool("exit-when-done", false, "Exit when all downloads complete")
-	rootCmd.SetVersionTemplate("Downloader v{{.Version}}\n")
-	rootCmd.Version = Version
+// Run 直接运行（兼容旧入口）
+func Run() {
+	if err := Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }

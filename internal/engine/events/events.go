@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-downloader/internal/engine/types"
+	"go-downloader/internal/engine/types"
 )
 
 // ProgressMsg represents a progress update from the downloader

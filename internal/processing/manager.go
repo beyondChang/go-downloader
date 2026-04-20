@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/engine/events"
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/config"
+	"go-downloader/internal/engine/events"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/utils"
 )
 
 // AddDownloadFunc is the lifecycle's handoff into the engine-facing queue layer.

@@ -1,272 +1,58 @@
+// Package config 配置管理 - 兼容层
+// 提供 Settings 类型别名以兼容旧代码
 package config
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"reflect"
 	"time"
-
-	"github.com/go-downloader/internal/utils"
 )
 
-// Settings holds all user-configurable application settings organized by category.
-type Settings struct {
-	General     GeneralSettings     `json:"general" ui_label:"General"`
-	Network     NetworkSettings     `json:"network" ui_label:"Network"`
-	Performance PerformanceSettings `json:"performance" ui_label:"Performance"`
-	Categories  CategorySettings    `json:"categories" ui_label:"Categories"`
-}
+// Settings 兼容旧代码的类型别名
+type Settings = Config
 
-// GeneralSettings contains application behavior settings.
-type GeneralSettings struct {
-	DefaultDownloadDir           string `json:"default_download_dir" ui_label:"Default Download Dir" ui_desc:"Default directory for new downloads. Leave empty to use current directory."`
-	WarnOnDuplicate              bool   `json:"warn_on_duplicate" ui_label:"Warn on Duplicate" ui_desc:"Show warning when adding a download that already exists."`
-	DownloadCompleteNotification bool   `json:"download_complete_notification" ui_label:"Download Complete Notification" ui_desc:"Show system notification when a download finishes."`
-	AllowRemoteOpenActions       bool   `json:"allow_remote_open_actions" ui_label:"Allow Remote Open Actions" ui_desc:"Allow /open-file and /open-folder API calls from non-loopback clients. Disabled by default for security."`
-	ExtensionPrompt              bool   `json:"extension_prompt" ui_label:"Extension Prompt" ui_desc:"Prompt for confirmation when adding downloads via browser extension."`
-	AutoResume                   bool   `json:"auto_resume" ui_label:"Auto Resume" ui_desc:"Automatically resume paused downloads on startup."`
-	SkipUpdateCheck              bool   `json:"skip_update_check" ui_label:"Skip Update Check" ui_desc:"Disable automatic check for new versions on startup."`
+// GeneralSettings 兼容旧代码的类型别名
+type GeneralSettings = GeneralConfig
 
-	ClipboardMonitor  bool `json:"clipboard_monitor" ui_label:"Clipboard Monitor" ui_desc:"Watch clipboard for URLs and prompt to download them."`
-	Theme             int  `json:"theme" ui_label:"App Theme" ui_desc:"UI Theme (System, Light, Dark)."`
-	LogRetentionCount int  `json:"log_retention_count" ui_label:"Log Retention Count" ui_desc:"Number of recent log files to keep."`
-}
+// NetworkSettings 兼容旧代码的类型别名
+type NetworkSettings = NetworkConfig
 
+// PerformanceSettings 兼容旧代码的类型别名
+type PerformanceSettings = PerformanceConfig
+
+// CategorySettings 兼容旧代码的类型别名
+type CategorySettings = CategoryConfig
+
+// 主题常量
 const (
-	ThemeAdaptive = 0
-	ThemeLight    = 1
-	ThemeDark     = 2
+	ThemeAdaptive = 0 // 跟随系统
+	ThemeLight    = 1 // 浅色
+	ThemeDark     = 2 // 深色
 )
 
-// CategorySettings holds options specifically for categorizing files.
-type CategorySettings struct {
-	CategoryEnabled bool       `json:"category_enabled" ui_label:"Manage Categories" ui_desc:"Sort downloads into subfolders by file type. Press Enter to open Category Manager."`
-	Categories      []Category `json:"categories" ui_ignored:"true"`
-}
-
-// NetworkSettings contains network connection parameters.
-type NetworkSettings struct {
-	MaxConnectionsPerHost  int    `json:"max_connections_per_host" ui_label:"Max Connections/Host" ui_desc:"Maximum concurrent connections per host (1-64)."`
-	MaxConcurrentDownloads int    `json:"max_concurrent_downloads" ui_label:"Max Concurrent Downloads" ui_desc:"Maximum number of downloads running at once (1-10). Requires restart."`
-	UserAgent              string `json:"user_agent" ui_label:"User Agent" ui_desc:"Custom User-Agent string for HTTP requests. Leave empty for default."`
-	ProxyURL               string `json:"proxy_url" ui_label:"Proxy URL" ui_desc:"HTTP/HTTPS proxy URL (e.g. http://127.0.0.1:1700). Leave empty to use system default."`
-	SequentialDownload     bool   `json:"sequential_download" ui_label:"Sequential Download" ui_desc:"Download pieces in order (Streaming Mode). May be slower."`
-	MinChunkSize           int64  `json:"min_chunk_size" ui_label:"Min Chunk Size" ui_desc:"Minimum download chunk size in MB (e.g., 2)."`
-	WorkerBufferSize       int    `json:"worker_buffer_size" ui_label:"Worker Buffer Size" ui_desc:"I/O buffer size per worker in KB (e.g., 512)."`
-}
-
-// PerformanceSettings contains performance tuning parameters.
-type PerformanceSettings struct {
-	MaxTaskRetries        int           `json:"max_task_retries" ui_label:"Max Task Retries" ui_desc:"Number of times to retry a failed chunk before giving up."`
-	SlowWorkerThreshold   float64       `json:"slow_worker_threshold" ui_label:"Slow Worker Threshold" ui_desc:"Restart workers slower than this fraction of mean speed (0.0-1.0)."`
-	SlowWorkerGracePeriod time.Duration `json:"slow_worker_grace_period" ui_label:"Slow Worker Grace" ui_desc:"Grace period before checking worker speed (e.g., 5s)."`
-	StallTimeout          time.Duration `json:"stall_timeout" ui_label:"Stall Timeout" ui_desc:"Restart workers with no data for this duration (e.g., 5s)."`
-	SpeedEmaAlpha         float64       `json:"speed_ema_alpha" ui_label:"Speed EMA Alpha" ui_desc:"Exponential moving average smoothing factor (0.0-1.0)."`
-}
-
-// SettingMeta provides metadata for a single setting (for UI rendering).
-type SettingMeta struct {
-	Key         string // JSON key name
-	Label       string // Human-readable label
-	Description string // Help text displayed in right pane
-	Type        string // "string", "int", "int64", "bool", "duration", "float64"
-}
-
-// GetSettingsMetadata returns metadata for all settings organized by category.
-func GetSettingsMetadata() map[string][]SettingMeta {
-	meta := make(map[string][]SettingMeta)
-	t := reflect.TypeOf(Settings{})
-
-	for i := 0; i < t.NumField(); i++ {
-		catField := t.Field(i)
-		catLabel := catField.Tag.Get("ui_label")
-		if catLabel == "" {
-			catLabel = catField.Name
-		}
-
-		var catMetas []SettingMeta
-		catType := catField.Type
-		if catType.Kind() == reflect.Struct {
-			for j := 0; j < catType.NumField(); j++ {
-				settingField := catType.Field(j)
-				if settingField.Tag.Get("ui_ignored") == "true" {
-					continue
-				}
-
-				key := settingField.Tag.Get("json")
-				if key == "" {
-					key = settingField.Name
-				}
-
-				label := settingField.Tag.Get("ui_label")
-				if label == "" {
-					label = settingField.Name
-				}
-
-				desc := settingField.Tag.Get("ui_desc")
-
-				// Determine implicit Type
-				typStr := "string"
-				switch settingField.Type.Kind() {
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
-					typStr = "int"
-				case reflect.Int64:
-					if settingField.Type.String() == "time.Duration" {
-						typStr = "duration"
-					} else {
-						typStr = "int64"
-					}
-				case reflect.Bool:
-					typStr = "bool"
-				case reflect.Float32, reflect.Float64:
-					typStr = "float64"
-				}
-
-				catMetas = append(catMetas, SettingMeta{
-					Key:         key,
-					Label:       label,
-					Description: desc,
-					Type:        typStr,
-				})
-			}
-		}
-		// Only output categories that have editable GUI parameters
-		if len(catMetas) > 0 {
-			meta[catLabel] = catMetas
-		}
-	}
-	return meta
-}
-
-// CategoryOrder returns the order of categories for UI tabs.
-func CategoryOrder() []string {
-	var order []string
-	t := reflect.TypeOf(Settings{})
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		label := field.Tag.Get("ui_label")
-		if label == "" {
-			label = field.Name
-		}
-
-		// Ensure category has UI elements before creating a tab!
-		catType := field.Type
-		hasUIElements := false
-		if catType.Kind() == reflect.Struct {
-			for j := 0; j < catType.NumField(); j++ {
-				if catType.Field(j).Tag.Get("ui_ignored") != "true" {
-					hasUIElements = true
-					break
-				}
-			}
-		}
-
-		// Only tabulate categories with active inputs
-		if hasUIElements {
-			order = append(order, label)
-		}
-	}
-	return order
-}
-
-const (
-	KB = 1 << 10
-	MB = 1 << 20
-)
-
-// DefaultSettings returns a new Settings instance with sensible defaults.
-func DefaultSettings() *Settings {
-
-	defaultDir := GetDownloadsDir()
-
-	return &Settings{
-		General: GeneralSettings{
-			DefaultDownloadDir:           defaultDir,
-			WarnOnDuplicate:              true,
-			DownloadCompleteNotification: true,
-			AllowRemoteOpenActions:       false,
-			ExtensionPrompt:              false,
-			AutoResume:                   false,
-
-			ClipboardMonitor:  true,
-			Theme:             ThemeAdaptive,
-			LogRetentionCount: 5,
-		},
-		Network: NetworkSettings{
-			MaxConnectionsPerHost:  32,
-			MaxConcurrentDownloads: 3,
-			UserAgent:              "", // Empty means use default UA
-			SequentialDownload:     false,
-			MinChunkSize:           2 * MB,
-			WorkerBufferSize:       512 * KB,
-		},
-		Performance: PerformanceSettings{
-			MaxTaskRetries:        3,
-			SlowWorkerThreshold:   0.3,
-			SlowWorkerGracePeriod: 5 * time.Second,
-			StallTimeout:          3 * time.Second,
-			SpeedEmaAlpha:         0.3,
-		},
-		Categories: CategorySettings{
-			CategoryEnabled: false,
-			Categories:      DefaultCategories(),
-		},
-	}
-}
-
-// GetSettingsPath returns the path to the settings JSON file.
-func GetSettingsPath() string {
-	return filepath.Join(GetDownloaderDir(), "settings.json")
-}
-
-// LoadSettings loads settings from disk. Returns defaults if file doesn't exist
-// or if the JSON is corrupt, so the application can always start.
+// LoadSettings 从磁盘加载设置（兼容旧代码）
 func LoadSettings() (*Settings, error) {
-	path := GetSettingsPath()
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return DefaultSettings(), nil
-		}
-		return nil, err
+	if err := InitConfig(); err != nil {
+		return DefaultSettings(), err
 	}
-
-	settings := DefaultSettings() // Start with defaults to fill any missing fields
-	if err := json.Unmarshal(data, settings); err != nil {
-		utils.Debug("Warning: corrupt settings file %s: %v - using defaults", path, err)
-		return DefaultSettings(), nil
-	}
-
-	return settings, nil
+	return GetConfig(), nil
 }
 
-// SaveSettings saves settings to disk atomically.
+// SaveSettings 保存设置到磁盘（兼容旧代码）
 func SaveSettings(s *Settings) error {
-	path := GetSettingsPath()
-
-	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-
-	data, err := json.MarshalIndent(s, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	// Atomic write: write to temp file, then rename
-	tempPath := path + ".tmp"
-	if err := os.WriteFile(tempPath, data, 0o644); err != nil {
-		return err
-	}
-
-	return os.Rename(tempPath, path)
+	return SaveConfig(s)
 }
 
-// ToRuntimeConfig converts Settings to a downloader RuntimeConfig
-// This is used to pass user settings to the download engine
+// DefaultSettings 返回默认设置（兼容旧代码）
+func DefaultSettings() *Settings {
+	return defaultConfig()
+}
+
+// GetSettingsPath 返回设置文件路径（兼容旧代码）
+func GetSettingsPath() string {
+	return GetConfigPath()
+}
+
+// RuntimeConfig 下载引擎运行时配置
+// 用于将用户设置传递给下载引擎
 type RuntimeConfig struct {
 	MaxConnectionsPerHost int
 	UserAgent             string
@@ -279,9 +65,13 @@ type RuntimeConfig struct {
 	SlowWorkerGracePeriod time.Duration
 	StallTimeout          time.Duration
 	SpeedEmaAlpha         float64
+	ConnectTimeout        time.Duration
+	ResponseTimeout       time.Duration
+	RequestTimeout        time.Duration
+	MaxRedirects          int
 }
 
-// ToRuntimeConfig creates a RuntimeConfig from user Settings
+// ToRuntimeConfig 从用户 Settings 创建 RuntimeConfig
 func (s *Settings) ToRuntimeConfig() *RuntimeConfig {
 	return &RuntimeConfig{
 		MaxConnectionsPerHost: s.Network.MaxConnectionsPerHost,
@@ -295,5 +85,9 @@ func (s *Settings) ToRuntimeConfig() *RuntimeConfig {
 		SlowWorkerGracePeriod: s.Performance.SlowWorkerGracePeriod,
 		StallTimeout:          s.Performance.StallTimeout,
 		SpeedEmaAlpha:         s.Performance.SpeedEmaAlpha,
+		ConnectTimeout:        s.Network.ConnectTimeout,
+		ResponseTimeout:       s.Network.ResponseTimeout,
+		RequestTimeout:        s.Network.RequestTimeout,
+		MaxRedirects:          s.Network.MaxRedirects,
 	}
 }

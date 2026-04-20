@@ -3,8 +3,8 @@ package concurrent
 import (
 	"time"
 
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/utils"
 )
 
 // checkWorkerHealth detects slow workers and cancels them

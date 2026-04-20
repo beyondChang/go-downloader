@@ -3,8 +3,8 @@ package app
 import (
 	"os"
 
-	"github.com/go-downloader/internal/download"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/download"
+	"go-downloader/internal/utils"
 )
 
 func Initialize() {

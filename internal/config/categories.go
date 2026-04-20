@@ -1,3 +1,5 @@
+// Package config 文件分类配置
+// 支持按文件类型自动分类下载文件到不同目录
 package config
 
 import (
@@ -7,36 +9,42 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/utils"
 )
 
-// Category defines a download category for auto-sorting.
+// Category 下载分类定义
 type Category struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Pattern     string `json:"pattern"`
-	Path        string `json:"path"`
+	// 分类名称
+	Name string `json:"name" mapstructure:"name"`
+	// 描述
+	Description string `json:"description,omitempty" mapstructure:"description"`
+	// 文件名匹配正则表达式
+	Pattern string `json:"pattern" mapstructure:"pattern"`
+	// 目标路径
+	Path string `json:"path" mapstructure:"path"`
 }
 
+// Validate 验证分类配置
 func (c *Category) Validate() error {
 	if c == nil {
-		return errors.New("category cannot be nil")
+		return errors.New("分类不能为空")
 	}
 	if strings.TrimSpace(c.Name) == "" {
-		return errors.New("category name cannot be empty")
+		return errors.New("分类名称不能为空")
 	}
 	if strings.TrimSpace(c.Pattern) == "" {
-		return errors.New("category pattern cannot be empty")
+		return errors.New("分类模式不能为空")
 	}
 	if _, err := regexp.Compile(strings.TrimSpace(c.Pattern)); err != nil {
 		return err
 	}
 	if strings.TrimSpace(c.Path) == "" {
-		return errors.New("category path cannot be empty")
+		return errors.New("分类路径不能为空")
 	}
 	return nil
 }
 
+// existingDirOrFallback 如果目录存在则返回该目录，否则返回回退目录
 func existingDirOrFallback(dir, fallback string) string {
 	trimmed := strings.TrimSpace(dir)
 	if trimmed != "" {
@@ -47,7 +55,7 @@ func existingDirOrFallback(dir, fallback string) string {
 	return fallback
 }
 
-// DefaultCategories returns the default set of download categories.
+// DefaultCategories 返回默认的下载分类集合
 func DefaultCategories() []Category {
 	downloadsDir := strings.TrimSpace(GetDownloadsDir())
 	if downloadsDir == "" {
@@ -55,59 +63,57 @@ func DefaultCategories() []Category {
 	}
 
 	videosDir := existingDirOrFallback(GetVideosDir(), downloadsDir)
-
 	musicDir := existingDirOrFallback(GetMusicDir(), downloadsDir)
-
 	documentsDir := existingDirOrFallback(GetDocumentsDir(), downloadsDir)
-
 	picturesDir := existingDirOrFallback(GetPicturesDir(), downloadsDir)
 
 	return []Category{
 		{
-			Name:        "Videos",
-			Description: "MP4s, MKVs, AVIs, and other video files.",
+			Name:        "视频",
+			Description: "MP4、MKV、AVI 等视频文件",
 			Pattern:     `(?i)\.(mp4|mkv|avi|mov|wmv|flv|webm|m4v|mpg|mpeg|3gp)$`,
 			Path:        videosDir,
 		},
 		{
-			Name:        "Music",
-			Description: "MP3s, FLACs, and other audio files.",
+			Name:        "音乐",
+			Description: "MP3、FLAC 等音频文件",
 			Pattern:     `(?i)\.(mp3|flac|wav|aac|ogg|wma|m4a|opus)$`,
 			Path:        musicDir,
 		},
 		{
-			Name:        "Compressed",
-			Description: "ZIPs, RARs, and other archive files.",
+			Name:        "压缩包",
+			Description: "ZIP、RAR 等压缩文件",
 			Pattern:     `(?i)\.(zip|rar|7z|tar|gz|bz2|xz|zst|tgz)$`,
-			Path:        downloadsDir, // Default to downloads, can be customized
+			Path:        downloadsDir,
 		},
 		{
-			Name:        "Documents",
-			Description: "PDFs, Word docs, spreadsheets, etc.",
+			Name:        "文档",
+			Description: "PDF、Word、Excel 等文档文件",
 			Pattern:     `(?i)\.(pdf|doc|docx|xls|xlsx|ppt|pptx|odt|ods|txt|rtf|csv|epub)$`,
 			Path:        documentsDir,
 		},
 		{
-			Name:        "Programs",
-			Description: "Executables, installers, and scripts.",
+			Name:        "程序",
+			Description: "可执行文件和安装包",
 			Pattern:     `(?i)\.(exe|msi|deb|rpm|appimage|dmg|pkg|flatpak|snap|sh|run|bin)$`,
 			Path:        downloadsDir,
 		},
 		{
-			Name:        "Images",
-			Description: "JPEGs, PNGs, and other image files.",
+			Name:        "图片",
+			Description: "JPEG、PNG 等图片文件",
 			Pattern:     `(?i)\.(jpg|jpeg|png|gif|bmp|svg|webp|ico|tiff|psd)$`,
 			Path:        picturesDir,
 		},
 	}
 }
 
+// 正则表达式缓存
 var (
 	patternCache = make(map[string]*regexp.Regexp)
 	patternMu    sync.RWMutex
 )
 
-// getCompiledPattern returns a compiled regular expression, using a cache to avoid recompiling.
+// getCompiledPattern 返回编译后的正则表达式，使用缓存避免重复编译
 func getCompiledPattern(pattern string) *regexp.Regexp {
 	patternMu.RLock()
 	re, ok := patternCache[pattern]
@@ -130,8 +136,8 @@ func getCompiledPattern(pattern string) *regexp.Regexp {
 	return re
 }
 
-// GetCategoryForFile returns the last matching category so user-added rules can
-// override broader defaults that appear earlier in the list.
+// GetCategoryForFile 返回文件匹配的分类
+// 返回最后一个匹配的分类，以便用户添加的规则可以覆盖前面的默认规则
 func GetCategoryForFile(filename string, categories []Category) (*Category, error) {
 	if filename == "" || len(categories) == 0 {
 		return nil, nil
@@ -148,7 +154,7 @@ func GetCategoryForFile(filename string, categories []Category) (*Category, erro
 		re := getCompiledPattern(cat.Pattern)
 		if re != nil && re.MatchString(filename) {
 			if matched != nil {
-				utils.Debug("Config: Category pattern %q matched %q, overriding earlier match %q", cat.Pattern, filename, matched.Pattern)
+				utils.Debug("Config: 分类模式 %q 匹配 %q，覆盖之前的匹配 %q", cat.Pattern, filename, matched.Pattern)
 			}
 			matched = cat
 		}
@@ -157,7 +163,7 @@ func GetCategoryForFile(filename string, categories []Category) (*Category, erro
 	return matched, nil
 }
 
-// ResolveCategoryPath returns the Path of a category.
+// ResolveCategoryPath 返回分类的路径
 func ResolveCategoryPath(cat *Category, defaultDownloadDir string) string {
 	defaultPath := strings.TrimSpace(defaultDownloadDir)
 	if cat == nil {
@@ -170,7 +176,7 @@ func ResolveCategoryPath(cat *Category, defaultDownloadDir string) string {
 	return trimmed
 }
 
-// CategoryNames returns a slice of category names.
+// CategoryNames 返回分类名称列表
 func CategoryNames(categories []Category) []string {
 	names := make([]string, len(categories))
 	for i, cat := range categories {

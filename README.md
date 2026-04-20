@@ -1,15 +1,37 @@
-# Project go-downloder
+# go-downloader
 
-### 构建指南
-在终端执行以下命令进行构建：
-```shell
-go build -ldflags "-H=windowsgui -s -w" -o go-downloader.exe
+## 运行
+
+```bash
+go run .
 ```
 
-**在 Trae/VS Code 中直接执行：**
-1. 按下 `Ctrl+Shift+B` 即可直接触发默认构建任务。
-2. 或者点击菜单栏 `终端` -> `运行任务...` -> `Build Go Downloader`。
+## 打包
 
-**使用说明：**
-- **启动**：双击 `go-downloader.exe`。程序会静默启动并最小化到系统托盘。
-- **管理**：在托盘图标上右键点击，选择“显示主界面”即可在浏览器中打开管理后台。
+双击 `build/build.bat` 即可一键打包，流程如下：
+
+1. 自动检查安装 [go-winres](https://github.com/tc-hib/go-winres) 工具
+2. 根据 `build/winres/winres.json` 生成资源文件（图标+版本信息+manifest）
+3. 编译 Windows GUI 程序
+4. 检测 UPX，存在则自动压缩
+
+### 手动打包
+
+```bash
+# 安装 go-winres（首次）
+go install github.com/tc-hib/go-winres@latest
+
+# 生成资源文件
+cd build && go-winres make && copy rsrc.syso ..\ && cd ..
+
+# 编译
+go build -ldflags="-s -w -H=windowsgui" -o go-downloader.exe .
+```
+
+### 自定义版本信息
+
+编辑 `build/winres/winres.json` 中的 `RT_VERSION` 字段，可修改：
+- FileDescription — 程序描述
+- CompanyName — 公司/作者名
+- LegalCopyright — 版权信息
+- FileVersion / ProductVersion — 版本号

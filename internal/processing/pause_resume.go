@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/engine/events"
-	"github.com/go-downloader/internal/engine/state"
-	"github.com/go-downloader/internal/engine/types"
+	"go-downloader/internal/config"
+	"go-downloader/internal/engine/events"
+	"go-downloader/internal/engine/state"
+	"go-downloader/internal/engine/types"
 )
 
 // EngineHooks defines the minimal callbacks Processing needs to orchestrate the worker pool.

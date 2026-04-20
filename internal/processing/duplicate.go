@@ -3,9 +3,9 @@ package processing
 import (
 	"strings"
 
-	"github.com/go-downloader/internal/config"
-	"github.com/go-downloader/internal/engine/state"
-	"github.com/go-downloader/internal/engine/types"
+	"go-downloader/internal/config"
+	"go-downloader/internal/engine/state"
+	"go-downloader/internal/engine/types"
 )
 
 // DuplicateResult represents the outcome of a duplicate check

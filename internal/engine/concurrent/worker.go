@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-downloader/internal/engine/types"
-	"github.com/go-downloader/internal/utils"
+	"go-downloader/internal/engine/types"
+	"go-downloader/internal/utils"
 )
 
 // worker downloads tasks from the queue
